@@ -72,10 +72,20 @@ export default function Home() {
       });
       el.style.left = "-9999px";
       el.style.top = "-9999px";
-      const link = document.createElement("a");
-      link.download = `${data.businessName.replace(/\s+/g, "-").toLowerCase()}-card.png`;
-      link.href = canvas.toDataURL("image/png");
-      link.click();
+      await new Promise<void>((resolve, reject) => {
+        canvas.toBlob((blob) => {
+          if (!blob) { reject(new Error("toBlob failed")); return; }
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.download = `${data.businessName.replace(/\s+/g, "-").toLowerCase()}-card.png`;
+          link.href = url;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+          resolve();
+        }, "image/png");
+      });
     } catch (e) {
       console.error(e);
     } finally {
