@@ -42,36 +42,33 @@ export default function Home() {
   const [data, setData] = useState<CardData>(DEFAULT_DATA);
   const [downloading, setDownloading] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
+  const cardWrapperRef = useRef<HTMLDivElement>(null);
 
   const update = useCallback(<K extends keyof CardData>(key: K, value: CardData[K]) => {
     setData((prev) => ({ ...prev, [key]: value }));
   }, []);
 
   const downloadCard = useCallback(async () => {
-    if (!cardRef.current) return;
+    if (!cardRef.current || !cardWrapperRef.current) return;
     setDownloading(true);
     try {
-      const el = cardRef.current;
-      // Move into viewport so html2canvas can compute styles
-      el.style.left = "0";
-      el.style.top = "0";
-      await new Promise((r) => setTimeout(r, 50));
+      const wrapper = cardWrapperRef.current;
+      // Move the wrapper (not the inner el) into viewport so html2canvas can compute styles
+      wrapper.style.left = "0px";
+      wrapper.style.top = "0px";
+      await new Promise((r) => setTimeout(r, 100));
       const html2canvas = (await import("html2canvas")).default;
-      const canvas = await html2canvas(el, {
+      const canvas = await html2canvas(cardRef.current, {
         width: 1080,
         height: 1080,
         scale: 1,
         useCORS: true,
         allowTaint: true,
         backgroundColor: null,
-        x: 0,
-        y: 0,
-        scrollX: 0,
-        scrollY: 0,
         logging: false,
       });
-      el.style.left = "-9999px";
-      el.style.top = "-9999px";
+      wrapper.style.left = "-9999px";
+      wrapper.style.top = "-9999px";
       await new Promise<void>((resolve, reject) => {
         canvas.toBlob((blob) => {
           if (!blob) { reject(new Error("toBlob failed")); return; }
@@ -236,7 +233,7 @@ export default function Home() {
           </div>
 
           {/* Hidden full-size card for export */}
-          <div style={{ position: "fixed", left: -9999, top: -9999, width: 1080, height: 1080 }}>
+          <div ref={cardWrapperRef} style={{ position: "fixed", left: -9999, top: -9999, width: 1080, height: 1080 }}>
             <CardPreview ref={cardRef} data={data} />
           </div>
 
