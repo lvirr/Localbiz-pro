@@ -41,6 +41,7 @@ const PALETTE_PRESETS = [
 export default function Home() {
   const [data, setData] = useState<CardData>(DEFAULT_DATA);
   const [downloading, setDownloading] = useState(false);
+  const [exportUrl, setExportUrl] = useState<string | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const cardWrapperRef = useRef<HTMLDivElement>(null);
 
@@ -69,28 +70,17 @@ export default function Home() {
       });
       wrapper.style.left = "-9999px";
       wrapper.style.top = "-9999px";
-      await new Promise<void>((resolve, reject) => {
-        canvas.toBlob((blob) => {
-          if (!blob) { reject(new Error("toBlob failed")); return; }
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement("a");
-          link.download = `${data.businessName.replace(/\s+/g, "-").toLowerCase()}-card.png`;
-          link.href = url;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          setTimeout(() => URL.revokeObjectURL(url), 1000);
-          resolve();
-        }, "image/png");
-      });
+      // Show in overlay so the user clicks a real <a> — avoids Firefox async gesture block
+      setExportUrl(canvas.toDataURL("image/png"));
     } catch (e) {
       console.error(e);
     } finally {
       setDownloading(false);
     }
-  }, [data.businessName]);
+  }, []);
 
   return (
+    <>
     <div className="min-h-screen bg-gray-950 flex flex-col">
       {/* Header */}
       <header className="border-b border-gray-800 px-8 py-4 flex items-center justify-between">
@@ -253,6 +243,28 @@ export default function Home() {
         </div>
       </div>
     </div>
+
+    {/* Export overlay — real <a> click avoids Firefox async-gesture block */}
+    {exportUrl && (
+      <div
+        className="fixed inset-0 bg-black/80 flex items-center justify-center z-50"
+        onClick={() => setExportUrl(null)}
+      >
+        <div className="flex flex-col items-center gap-5" onClick={(e) => e.stopPropagation()}>
+          <img src={exportUrl} alt="Card preview" style={{ width: 360, height: 360, borderRadius: 16 }} />
+          <a
+            href={exportUrl}
+            download={`${data.businessName.replace(/\s+/g, "-").toLowerCase()}-card.png`}
+            className="bg-violet-600 hover:bg-violet-500 text-white font-bold px-8 py-3 rounded-xl text-sm transition-colors"
+            onClick={() => setTimeout(() => setExportUrl(null), 500)}
+          >
+            ↓ Save PNG to device
+          </a>
+          <p className="text-gray-400 text-xs">Click outside to cancel</p>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 
