@@ -51,14 +51,27 @@ export default function Home() {
     if (!cardRef.current) return;
     setDownloading(true);
     try {
+      const el = cardRef.current;
+      // Move into viewport so html2canvas can compute styles
+      el.style.left = "0";
+      el.style.top = "0";
+      await new Promise((r) => setTimeout(r, 50));
       const html2canvas = (await import("html2canvas")).default;
-      const canvas = await html2canvas(cardRef.current, {
+      const canvas = await html2canvas(el, {
         width: 1080,
         height: 1080,
         scale: 1,
         useCORS: true,
+        allowTaint: true,
         backgroundColor: null,
+        x: 0,
+        y: 0,
+        scrollX: 0,
+        scrollY: 0,
+        logging: false,
       });
+      el.style.left = "-9999px";
+      el.style.top = "-9999px";
       const link = document.createElement("a");
       link.download = `${data.businessName.replace(/\s+/g, "-").toLowerCase()}-card.png`;
       link.href = canvas.toDataURL("image/png");
